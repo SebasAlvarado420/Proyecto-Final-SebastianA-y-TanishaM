@@ -22,24 +22,26 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/deploy-breast-cancer:v1 .
+      - name: Build docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/prediccion-emociones:latest .
 
-      - name: Docker push to DockerHub
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/deploy-breast-cancer:v1
+      - name: Docker push to Dockerhub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/prediccion-emociones:latest
 
       - name: Login into the server
         run: echo '${{ secrets.DOCKER_PASSWORD }}' | docker login -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin
 
-      - name: Deploy to EC2 instance
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
-            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-            docker stop deploy-breast-cancer || true
-            docker rm deploy-breast-cancer || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/deploy-breast-cancer:v1
-            docker run -d --name deploy-breast-cancer -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/deploy-breast-cancer:v1
+            if docker ps --all | grep prediccion-emociones; then
+              docker stop prediccion-emociones
+              docker rm prediccion-emociones
+            fi
+            docker pull ${{ secrets.DOCKER_USERNAME }}/prediccion-emociones:latest
+            docker run -d --name prediccion-emociones -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/prediccion-emociones:latest
+
